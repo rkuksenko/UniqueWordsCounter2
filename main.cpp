@@ -44,7 +44,8 @@ int main(int argc, char* argv[]) {
     std::cout << "File size: " << fileSize << " bytes " << std::endl;
 
     UniqueWordsCounterAsync uniqueWordsCounterAsync(fileData, fileSize);
-    std::cout << "Unique words: " << uniqueWordsCounterAsync.CountUniqueWordsAsync() << std::endl;
+    auto count = uniqueWordsCounterAsync.CountUniqueWordsAsync();
+    std::cout << "Unique words: " << count << std::endl;
 
     fileReader.CloseAndUnmapFile();
     return 0;

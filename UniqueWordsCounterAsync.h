@@ -1,7 +1,6 @@
 #pragma once
 #include <stdlib.h>
-#include <thread>
-#include <unordered_map>
+#include <unordered_set>
 
 class UniqueWordsCounterAsync {
 public:
@@ -15,12 +14,10 @@ public:
     size_t CountUniqueWordsAsync();
 
 private:
-    static void countUniqueWordsForChunk(char* start, size_t chunkLength,
-        size_t maxChunkOverlapIndex, std::unordered_map<size_t, int>& outWordToCount);
+    static std::unordered_set<size_t> countUniqueWordsForChunk(
+        char* start, size_t chunkLength, size_t maxChunkOverlapIndex);
 
 private:
     char* _fileData = nullptr;
     size_t _fileSize = 0;
-    static std::mutex _mutex;
-    std::unordered_map<size_t, int> _wordToCount;
 };
