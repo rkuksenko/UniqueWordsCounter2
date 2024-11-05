@@ -1,4 +1,4 @@
-gcc := g++ -std=c++20 -O3
+gcc := g++ -std=c++23 -O3
 
 all: main.o FileReader.o UniqueWordsCounterAsync.o
 	${gcc} -pthread main.o FileReader.o UniqueWordsCounterAsync.o -o UniqueWordsCounter

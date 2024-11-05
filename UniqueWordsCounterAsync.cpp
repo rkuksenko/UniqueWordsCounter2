@@ -43,23 +43,23 @@ size_t UniqueWordsCounterAsync::CountUniqueWordsAsync() {
 std::unordered_set<size_t> UniqueWordsCounterAsync::countUniqueWordsForChunk(
     char* start, size_t chunkLength, size_t maxChunkOverlapIndex) {
     std::unordered_set<size_t> threadLocalSet;
-    std::string word;
+    size_t hash = 5381;
 
     for (size_t i = 0; i < chunkLength; i++) {
-        if (!std::isspace(start[i])) {
-            word.push_back(start[i]);
-        } else if (!word.empty()){
-            threadLocalSet.emplace(std::hash<std::string>{}(word));
-            word.clear();
+        if (start[i] != ' ') {
+            hash = (hash << 5) + hash + start[i];
+        } else if (hash != 5381) {
+            threadLocalSet.emplace(hash);
+            hash = 5381;
         }
     }
-    if (!word.empty()) {
+    if (hash != 5381) {
         size_t i = chunkLength;
-        while (i < maxChunkOverlapIndex && !std::isspace(start[i])) {
-            word.push_back(start[i]);
+        while (i < maxChunkOverlapIndex && start[i] != ' ') {
+            hash = (hash << 5) + hash + start[i];
             i++;
         }
-        threadLocalSet.emplace(std::hash<std::string>{}(word));
+        threadLocalSet.emplace(hash);
     }
 
     return threadLocalSet;
