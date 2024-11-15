@@ -5,7 +5,9 @@
 #include <unordered_set>
 #include <vector>
 
-using namespace std::chrono_literals;
+constexpr size_t computeHash(size_t hash, char c) {
+    return (hash * 33) ^ static_cast<size_t>(c);
+}
 
 UniqueWordsCounterAsync::UniqueWordsCounterAsync(char* fileData, size_t fileSize)
     : _fileData(fileData), _fileSize(fileSize) {
@@ -26,14 +28,16 @@ size_t UniqueWordsCounterAsync::CountUniqueWordsAsync() {
         size_t offset = i * chunkSize;
         bool isLastChunk = (i == maxConcurrency - 1);
         size_t chunkLength = isLastChunk ? (_fileSize - offset) : chunkSize;
-        size_t maxChunkOverlapIndex = isLastChunk ? chunkLength : chunkLength * 1.5;
+        size_t maxChunkOverlapIndex = isLastChunk ? chunkLength : chunkLength + (chunkSize / 2);
 
-        auto future = std::async(std::launch::async,
-            countUniqueWordsForChunk, _fileData + offset, chunkLength, maxChunkOverlapIndex);
-        futures.emplace_back(std::move(future));
+        futures.emplace_back(std::async(
+            std::launch::async,
+            countUniqueWordsForChunk, _fileData + offset, chunkLength, maxChunkOverlapIndex
+        ));
     }
 
     std::unordered_set<size_t> wordToCount;
+    wordToCount.reserve(10'000'000);
     for (auto& future : futures) {
         wordToCount.merge(std::move(future.get()));
     }
@@ -43,21 +47,28 @@ size_t UniqueWordsCounterAsync::CountUniqueWordsAsync() {
 std::unordered_set<size_t> UniqueWordsCounterAsync::countUniqueWordsForChunk(
     char* start, size_t chunkLength, size_t maxChunkOverlapIndex) {
     std::unordered_set<size_t> threadLocalSet;
-    size_t hash = 5381;
+    threadLocalSet.reserve(1'000'000);
 
-    for (size_t i = 0; i < chunkLength; i++) {
-        if (start[i] != ' ') {
-            hash = (hash << 5) + hash + start[i];
-        } else if (hash != 5381) {
+    constexpr size_t initialHash = 5381;
+    size_t hash = initialHash;
+
+    char* end = start + chunkLength;
+    char* overlapEnd = start + maxChunkOverlapIndex;
+
+    while (start < end) {
+        if (*start != ' ') {
+            hash = computeHash(hash, *start);
+        } else if (hash != initialHash) {
             threadLocalSet.emplace(hash);
-            hash = 5381;
+            hash = initialHash;
         }
+        ++start;
     }
-    if (hash != 5381) {
-        size_t i = chunkLength;
-        while (i < maxChunkOverlapIndex && start[i] != ' ') {
-            hash = (hash << 5) + hash + start[i];
-            i++;
+
+    if (hash != initialHash) {
+        while (start < overlapEnd && *start != ' ') {
+            hash = computeHash(hash, *start);
+            ++start;
         }
         threadLocalSet.emplace(hash);
     }
